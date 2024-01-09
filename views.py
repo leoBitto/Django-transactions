@@ -16,7 +16,6 @@ from django.http import Http404
 from django.http import JsonResponse
 from calendar import monthrange
 
-logger = logging.getLogger(__name__)
 
 @login_required
 def index(request):
@@ -297,6 +296,7 @@ def bank_detail(request, pk):
     cash_amounts = Cash.objects.all()
     
     if request.method == 'POST':
+        print(request)
         if 'transfer_button' in request.POST:
             target_account_name = request.POST.get('target_account')
             amount = Decimal(request.POST.get('amount'))

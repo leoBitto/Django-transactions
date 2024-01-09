@@ -78,7 +78,7 @@ def log_amount_change(sender, instance, created, **kwargs):
 
 class Transaction(models.Model):
     date = models.DateField()
-    time = models.TimeField()
+    time = models.TimeField(blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=100, blank=True, null=True)
     bank_account = models.ForeignKey(BankAccount, null=True, blank=True, on_delete=models.CASCADE)
