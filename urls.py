@@ -21,7 +21,7 @@ from transactions import views
 
 app_name = 'transactions'
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('index/', views.index, name='index'),
     path('summary/', views.financial_summary, name='financial_summary'),
     path('register_income/', views.income_registration, name='income_registration'),
     path('register_expense/', views.expense_registration, name='expense_registration'),
