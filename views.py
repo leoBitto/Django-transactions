@@ -19,13 +19,13 @@ from calendar import monthrange
 
 @login_required
 def index(request):
-    today = date.today()
-    future_expenses = Expenditure.objects.filter(date__gt=today)
+    #today = date.today()
+    #future_expenses = Expenditure.objects.filter(date__gt=today)
     
-    for expense in future_expenses:
+    #for expense in future_expenses:
         # Esempio: Se la data è entro una settimana dalla data odierna, considera la spesa urgente
-        if (expense.date - today).days <= 7:
-            expense.is_urgent = True
+    #    if (expense.date - today).days <= 7:
+    #        expense.is_urgent = True
 
     # Gestione dei BankAccount
     try:
@@ -54,7 +54,7 @@ def index(request):
 
 
     context = {
-        'future_expenses':future_expenses,
+        #'future_expenses':future_expenses,
         'cash_amounts':cash_amounts,
         'bank_accounts': bank_accounts,
         'portfolios' : portfolios,
