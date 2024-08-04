@@ -137,3 +137,101 @@ Il modello `InvestmentAccount` rappresenta un conto d'investimento.
 
 
 
+
+
+
+###################nuova documentazione vvvv
+# Financial Management Application
+
+## Introduzione
+
+Questa applicazione è progettata per gestire i conti correnti e il contante, tenendo traccia delle transazioni finanziarie e mantenendo un registro dello storico dei saldi. L'app consente di registrare entrate, spese e altre transazioni in modo flessibile, supportando diversi tipi di fondi come conti bancari e denaro contante.
+
+### Funzionalità Principali
+- Creazione e gestione di conti bancari e contanti.
+- Registrazione di transazioni finanziarie (entrate e spese).
+- Tracciamento delle modifiche dei saldi nel tempo attraverso un sistema di log.
+- Supporto per categorie di entrate e spese personalizzate.
+
+## Modelli
+
+### FundBase
+`FundBase` è un modello astratto che fornisce una struttura comune per rappresentare un fondo finanziario, come un conto bancario o denaro contante. Include campi per il saldo (`balance`), la data di apertura (`start_date`) e la data di chiusura (`end_date`).
+
+### BankAccount
+`BankAccount` eredita da `FundBase` ed è utilizzato per rappresentare conti bancari specifici. Oltre ai campi base, include il tipo di conto (`account_type`), il nome dell'istituto bancario (`institution`) e il tasso d'interesse (`interest_rate`).
+
+### Cash
+`Cash` eredita da `FundBase` ed è utilizzato per rappresentare denaro contante. Include un campo aggiuntivo per la descrizione (`description`).
+
+### FundLog
+`FundLog` tiene traccia delle modifiche del saldo per qualsiasi tipo di fondo (`BankAccount` o `Cash`). Utilizza un `GenericForeignKey` per collegarsi dinamicamente al modello specifico di fondo.
+
+### Transaction
+`Transaction` rappresenta una transazione finanziaria generica. Può essere collegata a qualsiasi tipo di fondo (`BankAccount` o `Cash`) tramite una `GenericForeignKey`.
+
+### Income
+`Income` è un'estensione di `Transaction` per rappresentare entrate finanziarie. Ogni entrata è associata a una categoria (`IncomeCategory`).
+
+### Expenditure
+`Expenditure` è un'estensione di `Transaction` per rappresentare spese finanziarie. Ogni spesa è associata a una categoria (`ExpenseCategory`).
+
+### Relazioni tra Modelli
+I modelli `Income` e `Expenditure` ereditano da `Transaction` e sono collegati a categorie specifiche tramite relazioni `ForeignKey`. I modelli `BankAccount` e `Cash` sono collegati al log tramite `GenericForeignKey`.
+
+### Esempi di Utilizzo
+Di seguito un esempio di come creare e collegare un conto bancario e registrare una transazione:
+
+```python
+# Creare un nuovo conto bancario
+bank_account = BankAccount.objects.create(
+    balance=1000.00,
+    start_date=date.today(),
+    account_type='savings',
+    institution='Bank XYZ',
+    interest_rate=1.5
+)
+
+# Creare una nuova transazione di entrata
+income_category = IncomeCategory.objects.create(name='Salary', description='Monthly salary')
+income = Income.objects.create(
+    date=date.today(),
+    amount=500.00,
+    related_fund=ContentType.objects.get_for_model(bank_account),
+    object_id=bank_account.id,
+    type=income_category
+)
+```
+
+## Signal e Logging
+
+### Signal `log_fund_change`
+Il signal `log_fund_change` è collegato ai modelli `BankAccount` e `Cash`. Viene attivato ogni volta che un fondo viene aggiornato (non creato) e crea un nuovo record in `FundLog` per registrare il cambiamento del saldo.
+
+### Gestione del Logging
+Il modello `FundLog` utilizza un `GenericForeignKey` per collegarsi dinamicamente a qualsiasi tipo di fondo (`BankAccount` o `Cash`). Questo sistema di logging consente di tracciare l'andamento del saldo nel tempo, offrendo uno storico dettagliato delle operazioni sui fondi.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
