@@ -71,6 +71,38 @@ def log_fund_change(sender, instance, created, **kwargs):
                 balance=instance.balance
             )
 
+class TransactionCategory(models.Model):
+    TRANSACTION_TYPE_CHOICES = (
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    )
+
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPE_CHOICES)
+    parent = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        blank=True, 
+        null=True,
+        related_name='subcategories'
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.transaction_type})"
+
+    def get_hierarchy(self):
+        """Ritorna la gerarchia completa, utile per le visualizzazioni"""
+        hierarchy = [self]
+        parent = self.parent
+        while parent is not None:
+            hierarchy.append(parent)
+            parent = parent.parent
+        return hierarchy[::-1]  # Inverte per avere il percorso dal top
+
+    class Meta:
+        verbose_name_plural = "Transaction Categories"
+
 
 class Transaction(models.Model):
     TRANSACTION_TYPE_CHOICES = (
@@ -111,34 +143,3 @@ class Expenditure(Transaction):
         return f"Expenditure: {self.amount} on {self.date}"
 
 
-class TransactionCategory(models.Model):
-    TRANSACTION_TYPE_CHOICES = (
-        ('income', 'Income'),
-        ('expense', 'Expense'),
-    )
-
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPE_CHOICES)
-    parent = models.ForeignKey(
-        'self', 
-        on_delete=models.CASCADE, 
-        blank=True, 
-        null=True,
-        related_name='subcategories'
-    )
-
-    def __str__(self):
-        return f"{self.name} ({self.transaction_type})"
-
-    def get_hierarchy(self):
-        """Ritorna la gerarchia completa, utile per le visualizzazioni"""
-        hierarchy = [self]
-        parent = self.parent
-        while parent is not None:
-            hierarchy.append(parent)
-            parent = parent.parent
-        return hierarchy[::-1]  # Inverte per avere il percorso dal top
-
-    class Meta:
-        verbose_name_plural = "Transaction Categories"
