@@ -1,0 +1,39 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <h2 class="h4 mb-4">Dettaglio Categoria</h2>
+
+    <!-- Card Dettaglio Categoria con Gerarchia -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-tag"></i> Informazioni della Categoria
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                
+                <!-- Breadcrumb per Gerarchia -->
+                <p><strong>Gerarchia:</strong></p>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        {% for parent in category.get_hierarchy %}
+                            <li class="breadcrumb-item">
+                                {{ parent.name }}
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </nav>
+                
+                <!-- Pulsanti Azioni -->
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn bg-dark text-white" name="update_category">Aggiorna Categoria</button>
+                    <button type="submit" class="btn btn-danger" name="delete_category">Elimina Categoria</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

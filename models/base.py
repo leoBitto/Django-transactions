@@ -1,145 +1,147 @@
 from django.db import models
-from datetime import date, timedelta
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
+from django.db.models import Sum
+from django.core.exceptions import ValidationError
+from decimal import Decimal
+from datetime import date
 
-
-class FundBase(models.Model):
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    start_date = models.DateField()
-    end_date = models.DateField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        abstract = True
-
-    def __str__(self):
-        end_date_str = f" - End Date: {self.end_date}" if self.end_date else ""
-        return f"Amount: {self.balance} - Start Date: {self.start_date}{end_date_str}"
-
-
-class BankAccount(FundBase):
+class Account(models.Model):
     ACCOUNT_TYPES = (
-        ('checking', 'Checking Account'),
-        ('savings', 'Savings Account'),
-        ('deposit', 'Deposit Account'),
-        ('other', 'Other'),
-    )
-
-    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='checking')
-    institution = models.CharField(max_length=100)  # Nome dell'istituto bancario
-    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)  # Tasso d'interesse per conti con interesse
-
-    def __str__(self):
-        return f"{self.institution} ({self.account_type}) - Balance: {self.balance}"
-
-
-class Cash(FundBase):
-    description = models.CharField(max_length=100, blank=True, null=True)  # Descrizione del contante
-
-    def __str__(self):
-        end_date_str = f" - End Date: {self.end_date}" if self.end_date else ""
-        return f"Amount: {self.balance} - Start Date: {self.start_date}{end_date_str}"
-
-
-class FundLog(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    balance = models.DecimalField(max_digits=10, decimal_places=2)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Log for {self.content_object} - Balance: {self.balance} at {self.timestamp}"
-
-@receiver(post_save, sender=BankAccount)
-@receiver(post_save, sender=Cash)
-def log_fund_change(sender, instance, created, **kwargs):
-    if not created and instance.pk:  # Si assicura di non creare log duplicati al salvataggio iniziale
-        last_log = FundLog.objects.filter(
-            content_type=ContentType.objects.get_for_model(instance),
-            object_id=instance.id
-        ).order_by('-timestamp').first()
-
-        if last_log is None or last_log.balance != instance.balance:
-            # Crea un log solo se il bilancio è cambiato
-            FundLog.objects.create(
-                content_type=ContentType.objects.get_for_model(instance),
-                object_id=instance.id,
-                balance=instance.balance
-            )
-
-class TransactionCategory(models.Model):
-    TRANSACTION_TYPE_CHOICES = (
-        ('income', 'Income'),
-        ('expense', 'Expense'),
+        ('checking', 'Conto Corrente'),
+        ('savings', 'Conto Risparmio'),
+        ('deposit', 'Deposito'),
+        ('cash', 'Contanti'),
     )
 
     name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPE_CHOICES)
-    parent = models.ForeignKey(
-        'self', 
-        on_delete=models.CASCADE, 
-        blank=True, 
-        null=True,
-        related_name='subcategories'
-    )
+    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES)
+    institution = models.CharField(max_length=100)
+    initial_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['account_type', 'is_active']),
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.transaction_type})"
+        return f"{self.name} ({self.get_account_type_display()})"
 
-    def get_hierarchy(self):
-        """Ritorna la gerarchia completa, utile per le visualizzazioni"""
-        hierarchy = [self]
-        parent = self.parent
-        while parent is not None:
-            hierarchy.append(parent)
-            parent = parent.parent
-        return hierarchy[::-1]  # Inverte per avere il percorso dal top
+    def get_balance_at_date(self, target_date=None):
+        if target_date is None:
+            target_date = date.today()
+
+        # Ottimizziamo la query usando annotate e aggregate
+        balance = self.initial_balance
+
+        transactions_sum = self.account_transactions.filter(
+            date__lte=target_date
+        ).aggregate(
+            income_sum=Sum('amount', filter=models.Q(transaction_type='income')),
+            expense_sum=Sum('amount', filter=models.Q(transaction_type='expense'))
+        )
+
+        # Gestiamo il caso in cui non ci sono transazioni (None)
+        income = transactions_sum['income_sum'] or Decimal('0')
+        expenses = transactions_sum['expense_sum'] or Decimal('0')
+        
+        return balance + income - expenses
+
+    def current_balance(self):
+        return self.get_balance_at_date()
+
+    # Metodo per calcolare il saldo giornaliero
+    def get_daily_balances(self):
+        # Iniziamo dal saldo iniziale
+        daily_balances = {}
+
+        # Recuperiamo tutte le transazioni legate all'account, filtrate per data e tipo
+        transactions = Transaction.objects.filter(
+            account=self
+        ).values('date').annotate(
+            total_income=Sum('amount', filter=Q(transaction_type='income')),
+            total_expense=Sum('amount', filter=Q(transaction_type='expense'))
+        ).order_by('date')
+
+        # Iniziamo a calcolare i bilanci giorno per giorno
+        balance = self.initial_balance  # Parte dal bilancio iniziale
+        for transaction in transactions:
+            # Calcoliamo il saldo del giorno in base al totale delle transazioni
+            daily_balance = balance + (transaction['total_income'] or 0) - (transaction['total_expense'] or 0)
+            daily_balances[transaction['date']] = daily_balance
+            # Aggiorniamo il bilancio accumulato
+            balance = daily_balance
+
+        return daily_balances
+
+
+class TransactionCategory(models.Model):
+    TRANSACTION_TYPES = (
+        ('income', 'Entrata'),
+        ('expense', 'Uscita'),
+    )
+
+    name = models.CharField(max_length=100)
+    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        related_name='children',
+        on_delete=models.PROTECT
+    )
+    description = models.TextField(blank=True)
 
     class Meta:
-        verbose_name_plural = "Transaction Categories"
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+
+    def __str__(self):
+        if self.parent:
+            return f"{self.parent} > {self.name}"
+        return self.name
 
 
 class Transaction(models.Model):
-    TRANSACTION_TYPE_CHOICES = (
-        ('income', 'Income'),
-        ('expense', 'Expense'),
+    TRANSACTION_TYPES = (
+        ('income', 'Entrata'),
+        ('expense', 'Uscita'),
     )
 
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name='account_transactions'
+    )
     date = models.DateField()
-    time = models.TimeField(blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.CharField(max_length=100, blank=True, null=True)
-    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPE_CHOICES)
-    category = models.ForeignKey(TransactionCategory, on_delete=models.CASCADE)
-    related_fund = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('related_fund', 'object_id')
+    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)
+    category = models.ForeignKey(
+        TransactionCategory,
+        on_delete=models.PROTECT,
+        related_name='category_transactions'
+    )
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.get_transaction_type_display()}: {self.amount} on {self.date}"
-    
     class Meta:
+        ordering = ['-date', '-created_at']
         indexes = [
-            models.Index(fields=['date', 'time']),
+            models.Index(fields=['account', 'date', 'transaction_type']),
+            models.Index(fields=['date']),
         ]
 
-
-class Income(Transaction):
-    income_type = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE)
-
     def __str__(self):
-        return f"Income: {self.amount} on {self.date}"
-    
+        return f"{self.date} - {self.amount} € - {self.category}"
 
-class Expenditure(Transaction):
-    expense_type = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"Expenditure: {self.amount} on {self.date}"
-
-
+    def clean(self):
+        if self.category and self.category.transaction_type != self.transaction_type:
+            raise ValidationError({
+                'category': 'La categoria deve essere dello stesso tipo della transazione'
+            })
+        if self.amount <= 0:
+            raise ValidationError({
+                'amount': 'L\'importo deve essere maggiore di zero'
+            })

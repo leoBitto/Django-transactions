@@ -251,7 +251,57 @@ Il modulo verifica che la data di fine sia successiva alla data di inizio.
 
 
 
+ciao, vorrei che tu mi aiutassi a sriver euna applicazione con django. il nostro iter di sviluppo sarà così: 
+1. definizione dei modelli, già fatti ma vorrei sentire una tua opinione
+2. definizione del file admin.py
+3. definizione dei form
+4. definizione degli urls
+5. definzione delle views 
 
+ognuno di questi è già stato creato ma necessita di una revisione basata su come sono stati ristrutturati i modelli. la mia applicazione serve a gestire le finanze personali ed è necessario che faccia le seguenti cose di base:
+a. tenere traccia dei conti e dei loro bilanci
+b. tenere traccia del andamento del bilancio per ogni conto
+c. tenere traccia delle categorie di spesa e di reddito, che possono essere definite come gerarchie di categorie
+d. tenere traccia delle spese e dei redditi.
+e. possibilità di trasferire soldi da un conto all'altro
+f. possibilità di eliminare una transazione ma avere un corretto calcolo del bilancio.
+g. modificare una transazione e avere un corretto calcolo del bilancio.
+
+il progetto django si chiama Arnia e la app si chiama transactions. il tree dell'app:
+src/transactions/
+├── admin.py
+├── apps.py
+├── docs
+│   ├── assets
+│   │   └── img
+│   │       ├── transaction_icon.png
+│   │       └── transaction_logo.png
+│   ├── _config.yml
+│   └── README.md
+├── forms.py
+├── __init__.py
+├── migrations
+│   └── __init__.py
+├── models
+│   └── base.py
+├── templates
+│   └── transactions
+│       ├── accordion.html
+│       ├── account_detail.html
+│       ├── account.html
+│       ├── category_detail.html
+│       ├── category.html
+│       ├── expense.html
+│       ├── income.html
+│       └── transaction_detail.html
+├── tests.py
+├── urls.py
+└── views
+    └── base.py
+
+9 directories, 21 files
+
+dimmi se hai domande su queste informazioni basilari, poi ti farò vedere i miei modelli
 
 
 

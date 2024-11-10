@@ -1,164 +1,81 @@
 from django import forms
-from .models.base import Transaction, TransactionCategory, BankAccount, Cash
-from django.contrib.contenttypes.models import ContentType
+from .models.base import Account, Transaction, TransactionCategory
 
 
-
-class BankAccountForm(forms.ModelForm):
+class AccountForm(forms.ModelForm):
     class Meta:
-        model = BankAccount
-        fields = ['balance', 'start_date', 'end_date', 'account_type', 'institution', 'interest_rate']
+        model = Account
+        fields = ['name', 'account_type', 'institution', 'initial_balance', 'is_active']
         labels = {
-            'balance': 'Balance',
-            'start_date': 'Start date',
-            'end_date': 'End date',
-            'account_type': 'Account type',
-            'institution': 'Institution',
-            'interest_rate': 'Interest rate',
+            'name': 'Nome del Conto',
+            'account_type': 'Tipo di Conto',
+            'institution': 'Istituzione',
+            'initial_balance': 'Bilancio Iniziale',
+            'is_active': 'Attivo',
         }
         widgets = {
-            'balance': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter the balance'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select the start date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select the end date (optional)'}),
+            'initial_balance': forms.NumberInput(attrs={'class': 'form-control'}),
             'account_type': forms.Select(attrs={'class': 'form-control'}),
-            'institution': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter the institution name'}),
-            'interest_rate': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter the interest rate (optional)'}),
+            'institution': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['balance'].widget.attrs.update({'placeholder': 'Enter the balance'})
-        self.fields['start_date'].widget.attrs.update({'placeholder': 'Select the start date'})
-        self.fields['end_date'].widget.attrs.update({'placeholder': 'Select the end date (optional)'})
-        self.fields['institution'].widget.attrs.update({'placeholder': 'Enter the name of the institution'})
-        self.fields['interest_rate'].widget.attrs.update({'placeholder': 'Enter the interest rate (optional)'})
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-
-        if end_date and start_date and end_date <= start_date:
-            self.add_error('end_date', "The end date must be after the start date.")
-
-        return cleaned_data
-    
-
-class CashForm(forms.ModelForm):
-    class Meta:
-        model = Cash
-        fields = ['balance', 'start_date', 'end_date', 'description']
-        labels = {
-            'balance': 'Balance',
-            'start_date': 'Start date',
-            'end_date': 'End date',
-            'description': 'Description',
-        }
-        widgets = {
-            'balance': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter the balance'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select the start date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select the end date (optional)'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Enter a description (optional)'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['balance'].widget.attrs.update({'placeholder': 'Enter the balance'})
-        self.fields['start_date'].widget.attrs.update({'placeholder': 'Select the start date'})
-        self.fields['end_date'].widget.attrs.update({'placeholder': 'Select the end date (optional)'})
-        self.fields['description'].widget.attrs.update({'placeholder': 'Enter a description (optional)'})
-
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-
-        if end_date and start_date and end_date <= start_date:
-            self.add_error('end_date', "The end date must be after the start date.")
-
-        return cleaned_data
 
 
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
-        fields = ['date', 'time', 'amount', 'description', 'transaction_type', 'category', 'related_fund']
+        fields = ['date', 'amount', 'description', 'transaction_type', 'category', 'account']
         labels = {
-            'date': 'Date',
-            'time': 'Time',
-            'amount': 'Amount',
-            'description': 'Description',
-            'transaction_type': 'Transaction Type',
-            'category': 'Category',
-            'related_fund': 'Fund',
+            'date': 'Data',
+            'amount': 'Importo',
+            'description': 'Descrizione',
+            'transaction_type': 'Tipo di Transazione',
+            'category': 'Categoria',
+            'account': 'Conto Associato',
         }
         widgets = {
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'transaction_type': forms.Select(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-control'}),
-            'related_fund': forms.Select(attrs={'class': 'form-control'}),
+            'account': forms.Select(attrs={'class': 'form-control'}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Filtra le categorie in base al tipo di transazione
-        self.fields['category'].queryset = TransactionCategory.objects.none()
-        
-        if 'transaction_type' in self.data:
-            transaction_type = self.data.get('transaction_type')
-            self.fields['category'].queryset = TransactionCategory.objects.filter(transaction_type=transaction_type)
-
-        elif self.instance.pk:
-            self.fields['category'].queryset = TransactionCategory.objects.filter(transaction_type=self.instance.transaction_type)
-
-        # Filtra i fondi utilizzabili
-        self.fields['related_fund'].queryset = ContentType.objects.filter(model__in=['bankaccount', 'cash'])
-
-    def clean_amount(self):
-        amount = self.cleaned_data.get('amount')
-        if amount <= 0:
-            raise forms.ValidationError("Amount must be positive.")
-        return amount
 
     def clean(self):
         cleaned_data = super().clean()
         transaction_type = cleaned_data.get('transaction_type')
         category = cleaned_data.get('category')
+        amount = cleaned_data.get('amount')
 
         if category and transaction_type and category.transaction_type != transaction_type:
-            self.add_error('category', "Category must match the transaction type (income or expense).")
+            self.add_error('category', "La categoria deve corrispondere al tipo di transazione.")
+
+        if amount and amount <= 0:
+            self.add_error('amount', "L'importo deve essere maggiore di zero.")
 
         return cleaned_data
 
 
 class TransferFundsForm(forms.Form):
     amount = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        min_value=0.01,
-        label='Amount',
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter amount'})
+        max_digits=10, decimal_places=2, min_value=0.01,
+        label='Importo', widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
     source_fund = forms.ModelChoiceField(
-        queryset=BankAccount.objects.all() | Cash.objects.all(),
-        label='Source Fund',
+        queryset=Account.objects.filter(is_active=True),
+        label='Conto di Origine',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     destination_fund = forms.ModelChoiceField(
-        queryset=BankAccount.objects.all() | Cash.objects.all(),
-        label='Destination Fund',
+        queryset=Account.objects.filter(is_active=True),
+        label='Conto di Destinazione',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     commission = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        required=False,
-        initial=0.00,
-        label='Commission',
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter commission (optional)'})
+        max_digits=10, decimal_places=2, required=False, initial=0.00,
+        label='Commissione', widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
 
     def clean(self):
@@ -166,43 +83,14 @@ class TransferFundsForm(forms.Form):
         amount = cleaned_data.get('amount')
         source_fund = cleaned_data.get('source_fund')
         destination_fund = cleaned_data.get('destination_fund')
-        commission = cleaned_data.get('commission')
+        commission = cleaned_data.get('commission') or 0
 
         if source_fund == destination_fund:
-            self.add_error('destination_fund', "The source and destination funds cannot be the same.")
-        
-        if amount <= 0:
-            self.add_error('amount', "Amount must be greater than zero.")
+            self.add_error('destination_fund', "I conti di origine e di destinazione non possono coincidere.")
 
-        if source_fund.balance < amount + (commission or 0):
-            self.add_error('source_fund', "Insufficient funds in the source fund.")
+        if source_fund and source_fund.current_balance() < (amount + commission):
+            raise forms.ValidationError("Fondi insufficienti per coprire l'importo e la commissione.")
 
-        return cleaned_data
-
-
-class RecurringTransactionForm(forms.Form):
-    amount = forms.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
-    frequency = forms.ChoiceField(
-        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('annual', 'Annual')],
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}), required=False)
-    description = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    category = forms.ModelChoiceField(queryset=TransactionCategory.objects.all(), widget=forms.Select(attrs={'class': 'form-control'}))
-    related_fund = forms.ModelChoiceField(
-        queryset=ContentType.objects.filter(model__in=['bankaccount', 'cash']),
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-        
-        if end_date and end_date <= start_date:
-            self.add_error('end_date', "End date must be after start date.")
-        
         return cleaned_data
 
 
@@ -211,10 +99,10 @@ class TransactionCategoryForm(forms.ModelForm):
         model = TransactionCategory
         fields = ['name', 'description', 'transaction_type', 'parent']
         labels = {
-            'name': 'Category Name',
-            'description': 'Description',
-            'transaction_type': 'Type',
-            'parent': 'Parent Category',
+            'name': 'Nome della Categoria',
+            'description': 'Descrizione',
+            'transaction_type': 'Tipo',
+            'parent': 'Categoria Principale',
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -225,7 +113,6 @@ class TransactionCategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filtra il campo parent per mostrare solo categorie dello stesso tipo
         if 'transaction_type' in self.data:
             transaction_type = self.data.get('transaction_type')
             self.fields['parent'].queryset = TransactionCategory.objects.filter(transaction_type=transaction_type)
@@ -233,3 +120,51 @@ class TransactionCategoryForm(forms.ModelForm):
             self.fields['parent'].queryset = TransactionCategory.objects.filter(transaction_type=self.instance.transaction_type)
 
 
+class RecurringTransactionForm(forms.Form):
+    FREQUENCY_CHOICES = [
+        ('daily', 'Giornaliera'),
+        ('weekly', 'Settimanale'),
+        ('monthly', 'Mensile'),
+        ('semi-annual', 'Semestrale'),
+        ('annual', 'Annuale'),
+    ]
+    
+    amount = forms.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0.01,
+        label='Importo', widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    description = forms.CharField(
+        label='Descrizione', widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}), required=False
+    )
+    transaction_type = forms.ChoiceField(
+        choices=Transaction.TRANSACTION_TYPES,
+        label='Tipo di Transazione', widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    category = forms.ModelChoiceField(
+        queryset=TransactionCategory.objects.all(),
+        label='Categoria', widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    account = forms.ModelChoiceField(
+        queryset=Account.objects.filter(is_active=True),
+        label='Conto Associato', widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    start_date = forms.DateField(
+        label='Data di Inizio', widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    end_date = forms.DateField(
+        label='Data di Fine', widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}), required=False
+    )
+    frequency = forms.ChoiceField(
+        choices=FREQUENCY_CHOICES,
+        label='Frequenza', widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if end_date and end_date <= start_date:
+            self.add_error('end_date', "La data di fine deve essere successiva alla data di inizio.")
+
+        return cleaned_data

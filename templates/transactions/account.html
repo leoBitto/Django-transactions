@@ -1,0 +1,52 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4">Conti</h2>
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createBankAccountModal">Aggiungi Conto Bancario</button>
+    </div>
+
+    <!-- Modal per il conto bancario -->
+    <div class="modal fade" id="createBankAccountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuovo Conto Bancario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ account_form.as_p }}
+                        <button type="submit" name="create_account" class="btn bg-dark text-white">Crea Conto</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="h5 mt-4">Conti Bancari</h3>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Conto</th>
+                <th>Bilancio</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account, balance in account_balances.items %}
+                <tr>
+                    <td>{{ account.account_type }}</td>
+                    <td>{{ balance }} €</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-dark" href="{% url 'transactions:account_detail_view' account.id %}">Dettagli</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

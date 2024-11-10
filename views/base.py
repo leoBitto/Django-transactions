@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models.base import *
-from .forms import *
+from transactions.models.base import *
+from transactions.forms import *
 from django.contrib import messages
 
 
@@ -10,43 +10,36 @@ class AccountView(LoginRequiredMixin, View):
     template_name = 'transactions/account.html'
     
     def get(self, request, *args, **kwargs):
-        bank_accounts = BankAccount.objects.all()
-        cash_accounts = Cash.objects.all()
-        transfer_form = TransferFundsForm()
+        # Recupera tutti i conti bancari
+        accounts = Account.objects.all()
+
+        # Crea un dizionario con account come chiave e il saldo corrente come valore
+        account_balances = {
+            account: account.current_balance() for account in accounts
+        }
 
         return render(request, self.template_name, {
-            'bank_accounts': bank_accounts,
-            'cash_accounts': cash_accounts,
-            'transfer_form': transfer_form,
-            'bank_account_form': BankAccountForm(),
-            'cash_form': CashForm(),
+            'account_balances': account_balances,
+            'account_form': AccountForm(),
         })
 
     def post(self, request, *args, **kwargs):
-        if 'create_bank_account' in request.POST:
-            form = BankAccountForm(request.POST)
+        if 'create_account' in request.POST:
+            form = AccountForm(request.POST)
             if form.is_valid():
                 form.save()
-                messages.success(request, 'Bank account created successfully!')
+                messages.success(request, 'Account created successfully!')
                 return redirect('transactions:account_view')
 
-        elif 'create_cash_account' in request.POST:
-            form = CashForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(request, 'Cash account created successfully!')
-                return redirect('transactions:account_view')
-
-        # Ricarica i conti e i form in caso di errore
-        bank_accounts = BankAccount.objects.all()
-        cash_accounts = Cash.objects.all()
+        # In caso di errore, ricarica i conti bancari e il form
+        accounts = Account.objects.all()
+        account_balances = {
+            account: account.current_balance() for account in accounts
+        }
 
         return render(request, self.template_name, {
-            'bank_accounts': bank_accounts,
-            'cash_accounts': cash_accounts,
-            'transfer_form': transfer_form,
-            'bank_account_form': BankAccountForm(),
-            'cash_form': CashForm(),
+            'account_balances': account_balances,
+            'account_form': AccountForm(),
         })
 
 
@@ -54,30 +47,30 @@ class AccountDetailView(LoginRequiredMixin, View):
     template_name = 'transactions/account_detail.html'
 
     def get(self, request, account_id, *args, **kwargs):
-        # Identifica il fondo attualmente selezionato come source_fund
-        account = get_object_or_404(BankAccount, id=account_id) if 'bank' in request.GET else get_object_or_404(Cash, id=account_id)
-        form = BankAccountForm(instance=account) if isinstance(account, BankAccount) else CashForm(instance=account)
+        account = get_object_or_404(Account, id=account_id)
+        form = AccountForm(instance=account) 
         transfer_form = TransferFundsForm(initial={'source_fund': account})
 
-        # Disabilita il campo `source_fund` nel form per mostrare che è fisso
-        transfer_form.fields['source_fund'].widget.attrs['readonly'] = True
+        # Calcola il bilancio giornaliero
+        daily_balances = account.get_daily_balances()
 
         return render(request, self.template_name, {
             'account': account,
             'form': form,
             'transfer_form': transfer_form,
+            'daily_balances': daily_balances
         })
 
     def post(self, request, account_id, *args, **kwargs):
         # Identifica il fondo attualmente selezionato come source_fund
-        account = get_object_or_404(BankAccount, id=account_id) if 'bank' in request.GET else get_object_or_404(Cash, id=account_id)
-        form = BankAccountForm(request.POST, instance=account) if isinstance(account, BankAccount) else CashForm(request.POST, instance=account)
+        account = get_object_or_404(Account, id=account_id) 
+        form = AccountForm(request.POST, instance=account) 
         
         if 'update_account' in request.POST:
             if form.is_valid():
                 form.save()
                 messages.success(request, 'Account updated successfully!')
-                return redirect('transactions:account_detail', account_id=account.id)
+                return redirect('transactions:account_detail_view', account_id=account.id)
 
         elif 'delete_account' in request.POST:
             account.delete()
@@ -94,6 +87,7 @@ class AccountDetailView(LoginRequiredMixin, View):
                 commission = transfer_form.cleaned_data.get('commission', 0.00)
 
                 # Effettua la logica del trasferimento
+                account.calculate_current_balance()
                 if account.balance >= amount + commission:
                     # Riduce il saldo dal conto di origine
                     account.balance -= (amount + commission)
@@ -104,9 +98,9 @@ class AccountDetailView(LoginRequiredMixin, View):
                     destination_fund.save()
 
                     messages.success(request, 'Funds transferred successfully!')
-                    return redirect('transactions:account_detail', account_id=account.id)
+                    return redirect('transactions:account_detail_view', account_id=account.id)
                 else:
-                    messages.error(request, 'Insufficient funds for this transfer.')
+                    messages.error(request, form.errors)
 
         # Ricarica i conti e i form in caso di errore
         return render(request, self.template_name, {
@@ -121,15 +115,25 @@ class IncomeView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         # Filtra solo le transazioni di tipo 'income'
-        transactions = Transaction.objects.filter(transaction_type='income')
+        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date', '-time')
+        transaction_form = TransactionForm(
+                initial={
+                    'transaction_type': 'income', 
+                    'category': TransactionCategory.objects.filter(transaction_type='income')
+                })
+        recurring_transaction_form = RecurringTransactionForm(
+                initial={
+                    'transaction_type': 'income', 
+                    'category': TransactionCategory.objects.filter(transaction_type='income')
+                })
+
         return render(request, self.template_name, {
             'transactions': transactions,
-            'transaction_form': TransactionForm(initial={'transaction_type': 'income'}),
-            'recurring_transaction_form': RecurringTransactionForm(),
+            'transaction_form': transaction_form,
+            'recurring_transaction_form': recurring_transaction_form
         })
 
     def post(self, request, *args, **kwargs):
-        # Gestisce la creazione di una transazione normale o ricorrente
         if 'create_transaction' in request.POST:
             form = TransactionForm(request.POST)
             if form.is_valid():
@@ -143,14 +147,48 @@ class IncomeView(LoginRequiredMixin, View):
         elif 'create_recurring_transaction' in request.POST:
             recurring_form = RecurringTransactionForm(request.POST)
             if recurring_form.is_valid():
-                # Logica per la creazione di transazioni ricorrenti
+                start_date = recurring_form.cleaned_data['start_date']
+                end_date = recurring_form.cleaned_data.get('end_date')
+                frequency = recurring_form.cleaned_data['frequency']
+                category = recurring_form.cleaned_data['category']
+                amount = recurring_form.cleaned_data['amount']
+                description = recurring_form.cleaned_data.get('description')
+                account = recurring_form.cleaned_data['account']
+
+                # Creazione delle transazioni ricorrenti
+                current_date = start_date
+                while current_date <= end_date:
+                    # Crea una transazione per ogni data calcolata in base alla frequenza
+                    if frequency == 'daily':
+                        next_date = current_date + timedelta(days=1)
+                    elif frequency == 'weekly':
+                        next_date = current_date + timedelta(weeks=1)
+                    elif frequency == 'monthly':
+                        next_date = current_date + timedelta(weeks=4)
+                    elif frequency == 'semi-annual':
+                        next_date = current_date + timedelta(weeks=26)
+                    elif frequency == 'annual':
+                        next_date = current_date + timedelta(weeks=52)
+
+                    # Crea la transazione
+                    Transaction.objects.create(
+                        date=next_date,
+                        amount=amount,
+                        description=description,
+                        transaction_type='income',
+                        category=category,
+                        related_fund=account,
+                    )
+
+                    current_date = next_date  # Avanza alla prossima data
+
                 messages.success(request, 'Recurring income transaction created successfully!')
                 return redirect('transactions:income_view')
             else:
                 messages.error(request, 'Error creating recurring income transaction.')
 
         # Ricarica le transazioni in caso di errore
-        transactions = Transaction.objects.filter(transaction_type='income')
+        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date', '-time')
         return render(request, self.template_name, {
             'transactions': transactions,
             'transaction_form': form,
@@ -163,20 +201,32 @@ class ExpenseView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         # Filtra solo le transazioni di tipo 'expense'
-        transactions = Transaction.objects.filter(transaction_type='expense')
+        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date', '-time')
+        transaction_form = TransactionForm(
+                initial={
+                    'transaction_type': 'expense', 
+                    'category': TransactionCategory.objects.filter(transaction_type='expense')
+                })
+        recurring_transaction_form = RecurringTransactionForm(
+                initial={
+                    'transaction_type': 'expense', 
+                    'category': TransactionCategory.objects.filter(transaction_type='expense')
+                })
+
         return render(request, self.template_name, {
             'transactions': transactions,
-            'transaction_form': TransactionForm(initial={'transaction_type': 'expense'}),
-            'recurring_transaction_form': RecurringTransactionForm(),
+            'transaction_form': transaction_form,
+            'recurring_transaction_form': recurring_transaction_form
         })
 
     def post(self, request, *args, **kwargs):
-        # Gestisce la creazione di una transazione normale o ricorrente
         if 'create_transaction' in request.POST:
             form = TransactionForm(request.POST)
             if form.is_valid():
                 form.instance.transaction_type = 'expense'  # Imposta il tipo su 'expense'
                 form.save()
+                account = form.instance.related_fund
+                account.calculate_current_balance()  # Calcola il saldo del fondo
                 messages.success(request, 'Expense transaction created successfully!')
                 return redirect('transactions:expense_view')
             else:
@@ -185,14 +235,48 @@ class ExpenseView(LoginRequiredMixin, View):
         elif 'create_recurring_transaction' in request.POST:
             recurring_form = RecurringTransactionForm(request.POST)
             if recurring_form.is_valid():
-                # Logica per la creazione di transazioni ricorrenti
+                start_date = recurring_form.cleaned_data['start_date']
+                end_date = recurring_form.cleaned_data.get('end_date')
+                frequency = recurring_form.cleaned_data['frequency']
+                category = recurring_form.cleaned_data['category']
+                amount = recurring_form.cleaned_data['amount']
+                description = recurring_form.cleaned_data.get('description')
+                account = recurring_form.cleaned_data['account']
+
+                # Creazione delle transazioni ricorrenti
+                current_date = start_date
+                while current_date <= end_date:
+                    # Crea una transazione per ogni data calcolata in base alla frequenza
+                    if frequency == 'daily':
+                        next_date = current_date + timedelta(days=1)
+                    elif frequency == 'weekly':
+                        next_date = current_date + timedelta(weeks=1)
+                    elif frequency == 'monthly':
+                        next_date = current_date + timedelta(weeks=4)
+                    elif frequency == 'semi-annual':
+                        next_date = current_date + timedelta(weeks=26)
+                    elif frequency == 'annual':
+                        next_date = current_date + timedelta(weeks=52)
+
+                    # Crea la transazione
+                    Transaction.objects.create(
+                        date=next_date,
+                        amount=amount,
+                        description=description,
+                        transaction_type='expense',
+                        category=category,
+                        related_fund=account,
+                    )
+
+                    current_date = next_date  # Avanza alla prossima data
+
                 messages.success(request, 'Recurring expense transaction created successfully!')
                 return redirect('transactions:expense_view')
             else:
                 messages.error(request, 'Error creating recurring expense transaction.')
 
         # Ricarica le transazioni in caso di errore
-        transactions = Transaction.objects.filter(transaction_type='expense')
+        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date', '-time')
         return render(request, self.template_name, {
             'transactions': transactions,
             'transaction_form': form,
@@ -244,9 +328,11 @@ class CategoryView(LoginRequiredMixin, View):
     template_name = 'transactions/category.html'
 
     def get(self, request, *args, **kwargs):
-        categories = TransactionCategory.objects.all()
+        expense_categories = TransactionCategory.objects.filter(transaction_type='expense')
+        income_categories = TransactionCategory.objects.filter(transaction_type='income')
         return render(request, self.template_name, {
-            'categories': categories,
+            'expense_categories': expense_categories,
+            'income_categories':income_categories,
             'category_form': TransactionCategoryForm(),
         })
 
@@ -259,9 +345,11 @@ class CategoryView(LoginRequiredMixin, View):
                 return redirect('transactions:category_view')
 
         # Ricarica le categorie in caso di errore
-        categories = TransactionCategory.objects.all()
+        expense_categories = TransactionCategory.objects.filter(transaction_type='expense')
+        income_categories = TransactionCategory.objects.filter(transaction_type='income')
         return render(request, self.template_name, {
-            'categories': categories,
+            'expense_categories': expense_categories,
+            'income_categories':income_categories,
             'category_form': TransactionCategoryForm(),
         })
 
@@ -286,7 +374,7 @@ class CategoryDetailView(LoginRequiredMixin, View):
             if form.is_valid():
                 form.save()
                 messages.success(request, 'Category updated successfully!')
-                return redirect('transactions:category_detail', category_id=category.id)
+                return redirect('transactions:category_detail_view', category_id=category.id)
             else:
                 for field, errors in form.errors.items():
                     for error in errors:

@@ -1,128 +1,180 @@
 from django.test import TestCase
-from .models.base import BankAccount, Cash, FundLog, Income, IncomeCategory, Expenditure, ExpenseCategory
-from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
+from datetime import date, timedelta
+from decimal import Decimal
+from .models.base import Account, Transaction, TransactionCategory
+from django.core.exceptions import ValidationError
 
-class FundBaseModelTest(TestCase):
 
-    def test_create_bank_account(self):
-        account = BankAccount.objects.create(
-            balance=1000.00,
-            start_date='2024-01-01',
-            account_type='savings',
-            institution='Bank XYZ',
-            interest_rate=1.5
+class AccountTransactionsTestCase(TestCase):
+    def setUp(self):
+        # Create categories for income and expense
+        self.income_category = TransactionCategory.objects.create(
+            name="Salary", 
+            transaction_type="income"
         )
-        self.assertEqual(account.balance, 1000.00)
-        self.assertEqual(account.account_type, 'savings')
-        self.assertEqual(account.institution, 'Bank XYZ')
-        self.assertEqual(account.interest_rate, 1.5)
-
-    def test_create_cash(self):
-        cash = Cash.objects.create(
-            balance=500.00,
-            start_date='2024-01-01',
-            description='Cash in hand'
-        )
-        self.assertEqual(cash.balance, 500.00)
-        self.assertEqual(cash.description, 'Cash in hand')
-
-class FundLogSignalTest(TestCase):
-
-    def test_fund_log_created_on_bank_account_update(self):
-        account = BankAccount.objects.create(
-            balance=1000.00,
-            start_date='2024-01-01',
-            account_type='savings',
-            institution='Bank XYZ',
-            interest_rate=1.5
+        self.expense_category = TransactionCategory.objects.create(
+            name="Groceries", 
+            transaction_type="expense"
         )
         
-        account.balance = 1500.00
-        account.save()
-
-        log_entry = FundLog.objects.get(content_type=ContentType.objects.get_for_model(account), object_id=account.id)
-        self.assertEqual(log_entry.balance, 1500.00)
-
-    def test_fund_log_created_on_cash_update(self):
-        cash = Cash.objects.create(
-            balance=500.00,
-            start_date='2024-01-01',
-            description='Cash in hand'
+        # Create a test account
+        self.account = Account.objects.create(
+            name="Test Account",
+            account_type="checking",
+            initial_balance=Decimal('1000.00'),
+            institution="Test Bank"
         )
-        
-        cash.balance = 750.00
-        cash.save()
 
-        log_entry = FundLog.objects.get(content_type=ContentType.objects.get_for_model(cash), object_id=cash.id)
-        self.assertEqual(log_entry.balance, 750.00)
+    def test_initial_balance(self):
+        """Test that the initial balance is correctly set."""
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('1000.00'))
 
-class TransactionModelTest(TestCase):
-
-    def test_create_transaction_for_bank_account(self):
-        account = BankAccount.objects.create(
-            balance=1000.00,
-            start_date='2024-01-01',
-            account_type='savings',
-            institution='Bank XYZ'
+    def test_single_income_transaction(self):
+        """Verify that an income transaction correctly updates the balance."""
+        Transaction.objects.create(
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('500.00'),
+            transaction_type="income",
+            category=self.income_category
         )
-        
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('1500.00'))
+
+    def test_single_expense_transaction(self):
+        """Verify that an expense transaction correctly reduces the balance."""
+        Transaction.objects.create(
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('200.00'),
+            transaction_type="expense",
+            category=self.expense_category
+        )
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('800.00'))
+
+    def test_multiple_transactions_same_date(self):
+        """Test that multiple transactions on the same date are correctly calculated."""
+        Transaction.objects.create(
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('300.00'),
+            transaction_type="income",
+            category=self.income_category
+        )
+        Transaction.objects.create(
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('100.00'),
+            transaction_type="expense",
+            category=self.expense_category
+        )
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('1200.00'))
+
+    def test_future_transaction_not_included(self):
+        """Ensure that future-dated transactions don't impact the current balance."""
+        future_date = date.today() + timedelta(days=10)
+        Transaction.objects.create(
+            account=self.account,
+            date=future_date,
+            amount=Decimal('100.00'),
+            transaction_type="expense",
+            category=self.expense_category
+        )
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('1000.00'))
+        # Verify future balance
+        self.assertEqual(
+            self.account.get_balance_at_date(future_date), 
+            Decimal('900.00')
+        )
+
+    def test_category_hierarchy(self):
+        """Validate that category hierarchy is correctly maintained."""
+        parent_category = TransactionCategory.objects.create(
+            name="Household",
+            transaction_type="expense"
+        )
+        sub_category = TransactionCategory.objects.create(
+            name="Rent",
+            transaction_type="expense",
+            parent=parent_category
+        )
+        self.assertEqual(str(sub_category), "Household > Rent")
+
+    def test_transaction_deletion(self):
+        """Verify that deleting a transaction correctly updates the balance."""
         transaction = Transaction.objects.create(
-            date='2024-01-10',
-            amount=250.00,
-            related_fund=ContentType.objects.get_for_model(account),
-            object_id=account.id,
-            description="Test transaction"
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('150.00'),
+            transaction_type="expense",
+            category=self.expense_category
+        )
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('850.00'))
+        
+        transaction.delete()
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('1000.00'))
+
+    def test_multiple_accounts_independence(self):
+        """Test that transactions on different accounts don't affect each other."""
+        second_account = Account.objects.create(
+            name="Second Account",
+            account_type="savings",
+            initial_balance=Decimal('500.00'),
+            institution="Test Bank"
         )
 
-        self.assertEqual(transaction.content_object, account)
-        self.assertEqual(str(transaction), "Transaction: 250.00 on 2024-01-10")
-
-    def test_create_income(self):
-        account = BankAccount.objects.create(
-            balance=1000.00,
-            start_date='2024-01-01',
-            account_type='savings',
-            institution='Bank XYZ'
+        Transaction.objects.create(
+            account=self.account,
+            date=date.today(),
+            amount=Decimal('100.00'),
+            transaction_type="expense",
+            category=self.expense_category
         )
 
-        category = IncomeCategory.objects.create(
-            name="Salary",
-            description="Monthly Salary"
+        self.assertEqual(self.account.get_balance_at_date(), Decimal('900.00'))
+        self.assertEqual(second_account.get_balance_at_date(), Decimal('500.00'))
+
+    def test_transaction_category_validation(self):
+        """Test that transactions must have matching category types."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                account=self.account,
+                date=date.today(),
+                amount=Decimal('100.00'),
+                transaction_type="expense",
+                category=self.income_category  # Mismatched category type
+            )
+            transaction.clean()
+
+    def test_historical_balance(self):
+        """Test balance calculation for past dates."""
+        past_date = date.today() - timedelta(days=5)
+        future_date = date.today() + timedelta(days=5)
+        
+        Transaction.objects.create(
+            account=self.account,
+            date=past_date,
+            amount=Decimal('200.00'),
+            transaction_type="income",
+            category=self.income_category
+        )
+        Transaction.objects.create(
+            account=self.account,
+            date=future_date,
+            amount=Decimal('300.00'),
+            transaction_type="expense",
+            category=self.expense_category
         )
 
-        income = Income.objects.create(
-            date='2024-01-10',
-            amount=500.00,
-            related_fund=ContentType.objects.get_for_model(account),
-            object_id=account.id,
-            description="January Salary",
-            type=category
+        self.assertEqual(
+            self.account.get_balance_at_date(past_date), 
+            Decimal('1200.00')
         )
-
-        self.assertEqual(income.type.name, "Salary")
-        self.assertEqual(str(income), "Income: 500.00 on 2024-01-10")
-
-    def test_create_expenditure(self):
-        cash = Cash.objects.create(
-            balance=500.00,
-            start_date='2024-01-01',
-            description='Cash in hand'
+        self.assertEqual(
+            self.account.get_balance_at_date(date.today()), 
+            Decimal('1200.00')
         )
-
-        category = ExpenseCategory.objects.create(
-            name="Food",
-            description="Grocery shopping"
+        self.assertEqual(
+            self.account.get_balance_at_date(future_date), 
+            Decimal('900.00')
         )
-
-        expenditure = Expenditure.objects.create(
-            date='2024-01-12',
-            amount=100.00,
-            related_fund=ContentType.objects.get_for_model(cash),
-            object_id=cash.id,
-            description="Grocery Shopping",
-            type=category
-        )
-
-        self.assertEqual(expenditure.type.name, "Food")
-        self.assertEqual(str(expenditure), "Expenditure: 100.00 on 2024-01-12")
-
