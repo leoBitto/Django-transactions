@@ -53,6 +53,8 @@
             <tr>
                 <th>Data</th>
                 <th>Descrizione</th>
+                <th>Account</th>
+                <th>Categoria</th>
                 <th>Importo</th>
                 <th>Azioni</th>
             </tr>
@@ -62,6 +64,8 @@
                 <tr>
                     <td>{{ transaction.date }}</td>
                     <td>{{ transaction.description }}</td>
+                    <td>{{ transaction.account.name }}</td>
+                    <td>{{ transaction.category.name }}</td>
                     <td>{{ transaction.amount }} €</td>
                     <td>
                         <a class="btn btn-sm btn-outline-dark" href="{% url 'transactions:transaction_detail_view' transaction.id %}">Modifica</a>
