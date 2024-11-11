@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from transactions.models.base import *
 from transactions.forms import *
 from django.contrib import messages
+from datetime import timedelta
 
 
 class AccountView(LoginRequiredMixin, View):
@@ -87,7 +88,7 @@ class AccountDetailView(LoginRequiredMixin, View):
                 commission = transfer_form.cleaned_data.get('commission', 0.00)
 
                 # Effettua la logica del trasferimento
-                account.calculate_current_balance()
+                account.current_balance()
                 if account.balance >= amount + commission:
                     # Riduce il saldo dal conto di origine
                     account.balance -= (amount + commission)
@@ -115,7 +116,7 @@ class IncomeView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         # Filtra solo le transazioni di tipo 'income'
-        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date', '-time')
+        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date')
         transaction_form = TransactionForm(
                 initial={
                     'transaction_type': 'income', 
@@ -177,7 +178,7 @@ class IncomeView(LoginRequiredMixin, View):
                         description=description,
                         transaction_type='income',
                         category=category,
-                        related_fund=account,
+                        account=account,
                     )
 
                     current_date = next_date  # Avanza alla prossima data
@@ -188,7 +189,7 @@ class IncomeView(LoginRequiredMixin, View):
                 messages.error(request, 'Error creating recurring income transaction.')
 
         # Ricarica le transazioni in caso di errore
-        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date', '-time')
+        transactions = Transaction.objects.filter(transaction_type='income').order_by('-date')
         return render(request, self.template_name, {
             'transactions': transactions,
             'transaction_form': form,
@@ -201,7 +202,7 @@ class ExpenseView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         # Filtra solo le transazioni di tipo 'expense'
-        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date', '-time')
+        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date')
         transaction_form = TransactionForm(
                 initial={
                     'transaction_type': 'expense', 
@@ -225,8 +226,6 @@ class ExpenseView(LoginRequiredMixin, View):
             if form.is_valid():
                 form.instance.transaction_type = 'expense'  # Imposta il tipo su 'expense'
                 form.save()
-                account = form.instance.related_fund
-                account.calculate_current_balance()  # Calcola il saldo del fondo
                 messages.success(request, 'Expense transaction created successfully!')
                 return redirect('transactions:expense_view')
             else:
@@ -265,7 +264,7 @@ class ExpenseView(LoginRequiredMixin, View):
                         description=description,
                         transaction_type='expense',
                         category=category,
-                        related_fund=account,
+                        account=account,
                     )
 
                     current_date = next_date  # Avanza alla prossima data
@@ -276,7 +275,7 @@ class ExpenseView(LoginRequiredMixin, View):
                 messages.error(request, 'Error creating recurring expense transaction.')
 
         # Ricarica le transazioni in caso di errore
-        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date', '-time')
+        transactions = Transaction.objects.filter(transaction_type='expense').order_by('-date')
         return render(request, self.template_name, {
             'transactions': transactions,
             'transaction_form': form,

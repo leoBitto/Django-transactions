@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from datetime import date
@@ -75,7 +75,6 @@ class Account(models.Model):
 
         return daily_balances
 
-
 class TransactionCategory(models.Model):
     TRANSACTION_TYPES = (
         ('income', 'Entrata'),
@@ -101,6 +100,24 @@ class TransactionCategory(models.Model):
         if self.parent:
             return f"{self.parent} > {self.name}"
         return self.name
+
+    def get_hierarchy(self, n=None):
+        """
+        Restituisce una lista con la gerarchia dei parent fino all'oggetto corrente.
+        Se `n` è specificato, limita la lista ai primi `n` parent.
+        """
+        hierarchy = []
+        category = self
+        while category:
+            hierarchy.insert(0, category)  # Inserisce il parent corrente all'inizio della lista
+            if n and len(hierarchy) == n:
+                break
+            category = category.parent
+        return hierarchy
+    
+    def get_hierarchy_limited(self):
+        return self.get_hierarchy(3)
+
 
 
 class Transaction(models.Model):
