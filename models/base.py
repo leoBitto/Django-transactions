@@ -162,3 +162,4 @@ class Transaction(models.Model):
             raise ValidationError({
                 'amount': 'L\'importo deve essere maggiore di zero'
             })
+            

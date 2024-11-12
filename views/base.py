@@ -85,23 +85,49 @@ class AccountDetailView(LoginRequiredMixin, View):
             if transfer_form.is_valid():
                 amount = transfer_form.cleaned_data['amount']
                 destination_fund = transfer_form.cleaned_data['destination_fund']
-                commission = transfer_form.cleaned_data.get('commission', 0.00)
+                commission = transfer_form.cleaned_data.get('commission', Decimal('0.00'))
 
-                # Effettua la logica del trasferimento
-                account.current_balance()
-                if account.balance >= amount + commission:
-                    # Riduce il saldo dal conto di origine
-                    account.balance -= (amount + commission)
-                    account.save()
+                # Verifica saldo attuale e se ci sono fondi sufficienti
+                current_balance = account.get_balance_at_date()
+                if current_balance >= amount + commission:
+                    # Avvio di una transazione atomica per garantire la coerenza
+                    with db_transaction.atomic():
+                        # 1. Transazione di spesa per il trasferimento dal conto di origine
+                        Transaction.objects.create(
+                            account=account,
+                            date=date.today(),
+                            amount=amount,
+                            transaction_type='expense',
+                            category=TransactionCategory.objects.get(name="Transfer Expense"),  # Categoria da configurare
+                            description=f'Transfer to {destination_fund.name}'
+                        )
+                        
+                        # 2. Transazione di entrata per il conto di destinazione
+                        Transaction.objects.create(
+                            account=destination_fund,
+                            date=date.today(),
+                            amount=amount,
+                            transaction_type='income',
+                            category=TransactionCategory.objects.get(name="Transfer Income"),  # Categoria da configurare
+                            description=f'Transfer from {account.name}'
+                        )
 
-                    # Aggiunge il saldo al conto di destinazione
-                    destination_fund.balance += amount
-                    destination_fund.save()
+                        # 3. Transazione per le commissioni (se maggiore di zero)
+                        if commission > Decimal('0.00'):
+                            Transaction.objects.create(
+                                account=account,
+                                date=date.today(),
+                                amount=commission,
+                                transaction_type='expense',
+                                category=TransactionCategory.objects.get(name="Transfer Commission"),  # Categoria da configurare
+                                description=f'Transfer commission for {destination_fund.name}'
+                            )
 
                     messages.success(request, 'Funds transferred successfully!')
                     return redirect('transactions:account_detail_view', account_id=account.id)
                 else:
-                    messages.error(request, form.errors)
+                    messages.error(request, 'Insufficient funds for this transfer, including commission.')
+
 
         # Ricarica i conti e i form in caso di errore
         return render(request, self.template_name, {
