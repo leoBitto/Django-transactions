@@ -11,6 +11,7 @@ class TransactionsConfig(AppConfig):
 
     def ready(self):
         post_migrate.connect(create_default_categories, sender=self)
+        post_migrate.connect(create_default_account, sender=self)
 
 def create_default_categories(sender, **kwargs):
     from .models.base import TransactionCategory
@@ -32,10 +33,9 @@ def create_default_categories(sender, **kwargs):
 
 def create_default_account(sender, **kwargs):
     from .models.base import Account
-    default_account =
-        {
+    default_account ={
         "name": "Contanti", 
-        "account_type": "Contanti",
+        "account_type": "cash",
         "institution": "None",
         "initial_balance": 0,
         }        
