@@ -5,6 +5,9 @@ from transactions.models.base import *
 from transactions.forms import *
 from django.contrib import messages
 from datetime import timedelta
+from django.db import transaction
+from dateutil.relativedelta import relativedelta
+from django.utils import timezone
 
 
 class AccountView(LoginRequiredMixin, View):
@@ -91,7 +94,7 @@ class AccountDetailView(LoginRequiredMixin, View):
                 current_balance = account.get_balance_at_date()
                 if current_balance >= amount + commission:
                     # Avvio di una transazione atomica per garantire la coerenza
-                    with db_transaction.atomic():
+                    with transaction.atomic():
                         # 1. Transazione di spesa per il trasferimento dal conto di origine
                         Transaction.objects.create(
                             account=account,
@@ -182,32 +185,42 @@ class IncomeView(LoginRequiredMixin, View):
                 description = recurring_form.cleaned_data.get('description')
                 account = recurring_form.cleaned_data['account']
 
+                # Crea la transazione per la data di inizio
+                Transaction.objects.create(
+                    date=start_date,
+                    amount=amount,
+                    description=description,
+                    transaction_type='income',
+                    category=category,
+                    account=account,
+                )
+
                 # Creazione delle transazioni ricorrenti
                 current_date = start_date
-                while current_date <= end_date:
-                    # Crea una transazione per ogni data calcolata in base alla frequenza
+                while current_date < end_date:
+                    # Calcola la prossima data in base alla frequenza
                     if frequency == 'daily':
-                        next_date = current_date + timedelta(days=1)
+                        current_date = current_date + timedelta(days=1)
                     elif frequency == 'weekly':
-                        next_date = current_date + timedelta(weeks=1)
+                        current_date = current_date + timedelta(weeks=1)
                     elif frequency == 'monthly':
-                        next_date = current_date + timedelta(weeks=4)
+                        # Usa relativedelta per gestire correttamente i mesi
+                        current_date = current_date + relativedelta(months=1)
                     elif frequency == 'semi-annual':
-                        next_date = current_date + timedelta(weeks=26)
+                        current_date = current_date + relativedelta(months=6)
                     elif frequency == 'annual':
-                        next_date = current_date + timedelta(weeks=52)
+                        current_date = current_date + relativedelta(years=1)
 
-                    # Crea la transazione
-                    Transaction.objects.create(
-                        date=next_date,
-                        amount=amount,
-                        description=description,
-                        transaction_type='income',
-                        category=category,
-                        account=account,
-                    )
-
-                    current_date = next_date  # Avanza alla prossima data
+                    # Crea la transazione per la nuova data
+                    if current_date <= end_date:
+                        Transaction.objects.create(
+                            date=current_date,
+                            amount=amount,
+                            description=description,
+                            transaction_type='income',
+                            category=category,
+                            account=account,
+                        )
 
                 messages.success(request, 'Recurring income transaction created successfully!')
                 return redirect('transactions:income_view')
@@ -268,32 +281,42 @@ class ExpenseView(LoginRequiredMixin, View):
                 description = recurring_form.cleaned_data.get('description')
                 account = recurring_form.cleaned_data['account']
 
+                # Crea la transazione per la data di inizio
+                Transaction.objects.create(
+                    date=start_date,
+                    amount=amount,
+                    description=description,
+                    transaction_type='expense',
+                    category=category,
+                    account=account,
+                )
+
                 # Creazione delle transazioni ricorrenti
                 current_date = start_date
-                while current_date <= end_date:
-                    # Crea una transazione per ogni data calcolata in base alla frequenza
+                while current_date < end_date:
+                    # Calcola la prossima data in base alla frequenza
                     if frequency == 'daily':
-                        next_date = current_date + timedelta(days=1)
+                        current_date = current_date + timedelta(days=1)
                     elif frequency == 'weekly':
-                        next_date = current_date + timedelta(weeks=1)
+                        current_date = current_date + timedelta(weeks=1)
                     elif frequency == 'monthly':
-                        next_date = current_date + timedelta(weeks=4)
+                        # Usa relativedelta per gestire correttamente i mesi
+                        current_date = current_date + relativedelta(months=1)
                     elif frequency == 'semi-annual':
-                        next_date = current_date + timedelta(weeks=26)
+                        current_date = current_date + relativedelta(months=6)
                     elif frequency == 'annual':
-                        next_date = current_date + timedelta(weeks=52)
+                        current_date = current_date + relativedelta(years=1)
 
-                    # Crea la transazione
-                    Transaction.objects.create(
-                        date=next_date,
-                        amount=amount,
-                        description=description,
-                        transaction_type='expense',
-                        category=category,
-                        account=account,
-                    )
-
-                    current_date = next_date  # Avanza alla prossima data
+                    # Crea la transazione per la nuova data
+                    if current_date <= end_date:
+                        Transaction.objects.create(
+                            date=current_date,
+                            amount=amount,
+                            description=description,
+                            transaction_type='expense',
+                            category=category,
+                            account=account,
+                        )
 
                 messages.success(request, 'Recurring expense transaction created successfully!')
                 return redirect('transactions:expense_view')

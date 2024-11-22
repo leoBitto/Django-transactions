@@ -35,7 +35,7 @@ def create_default_account(sender, **kwargs):
     from .models.base import Account
     default_account ={
         "name": "Contanti", 
-        "account_type": "casht",
+        "account_type": "cash",
         "institution": "None",
         "initial_balance": 0,
         }        
