@@ -33,17 +33,25 @@ def create_default_categories(sender, **kwargs):
 
 def create_default_account(sender, **kwargs):
     from .models.base import Account
-    default_account ={
-        "name": "Contanti", 
+    
+    # Definizione dei dati dell'account di default
+    default_account = {
+        "name": "Contanti",
         "account_type": "cash",
         "institution": "None",
         "initial_balance": 0,
-        }        
+    }
 
     try:
-        Account.objects.get_or_create(**default_account)
+        # Controlla se esiste già almeno un oggetto Account
+        if not Account.objects.exists():
+            # Crea l'account di default se nessun account è presente
+            Account.objects.get_or_create(**default_account)
+            logger.info("Default account created successfully.")
     except (OperationalError, ProgrammingError) as e:
-        # Logga un messaggio di errore se le tabelle non sono pronte
-        logger.error("Could not create default account. "
-                        "This might be due to the tables not being ready. "
-                        "Error: %s", e)
+        # Logga un messaggio di errore se le tabelle non sono pronte o c'è un altro problema
+        logger.error(
+            "Could not create default account. "
+            "This might be due to the tables not being ready. "
+            "Error: %s", e
+        )
