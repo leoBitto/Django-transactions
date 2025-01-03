@@ -1,0 +1,64 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4">Conti</h2>
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createBankAccountModal">
+            Aggiungi Conto Bancario
+        </button>
+    </div>
+
+    <!-- Modal per il nuovo conto -->
+    <div class="modal fade" id="createBankAccountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Nuovo Conto Bancario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ account_form.as_p }}
+                        <button type="submit" name="create_account" class="btn bg-dark text-white">
+                            Crea Conto
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm w-100">
+        <div class="card-body">
+            <h5 class="card-title">Total of all account</h5>
+            <p class="card-text">
+                <strong>Bilancio:</strong> {{ total_balance }} €
+            </p>
+        </div>
+    </div>
+
+    <!-- Griglia delle card dei conti bancari -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for account, balance in account_balances.items %}
+            <div class="col">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ account.name }}</h5>
+                        <p class="card-text">
+                            <strong>Tipo di Conto:</strong> {{ account.get_account_type_display }}<br>
+                            <strong>Istituzione:</strong> {{ account.institution }}<br>
+                            <strong>Bilancio:</strong> {{ balance }} €
+                        </p>
+                        <a href="{% url 'transactions:account_detail_view' account.id %}" class="btn btn-outline-dark">
+                            Dettagli
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

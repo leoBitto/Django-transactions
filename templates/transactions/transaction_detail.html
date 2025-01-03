@@ -1,0 +1,51 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <h2 class="h4 mb-4">Dettaglio Transazione</h2>
+
+    <!-- Card Dettaglio della Transazione -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-receipt"></i> Informazioni della Transazione
+        </div>
+        <div class="card-body">
+            <p><strong>Data:</strong> {{ transaction.date }}</p>
+            <p><strong>Descrizione:</strong> {{ transaction.description|default:"Nessuna descrizione" }}</p>
+            <p><strong>Importo:</strong> {{ transaction.amount }} €</p>
+            <p><strong>Tipo:</strong> {{ transaction.get_transaction_type_display }}</p>
+            <p><strong>Categoria:</strong> {{ transaction.category.name }}</p>
+        </div>
+    </div>
+
+    <!-- Bottoni Azioni -->
+    <div>
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#updateTransactionModal">
+            <i class="fas fa-edit me-2"></i> Modifica Transazione
+        </button>
+    </div>
+
+    <!-- Modale per Modifica Transazione -->
+    <div class="modal fade" id="updateTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Modifica Transazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn bg-dark text-white" name="update_transaction">Aggiorna Transazione</button>
+                            <button type="submit" class="btn btn-danger" name="delete_transaction">Elimina Transazione</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

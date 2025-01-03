@@ -1,0 +1,78 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4">Spese</h2>
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createExpenseModal">Aggiungi Spesa</button>
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createRecurrentExpenseModal">Aggiungi Spesa Ricorrente</button>
+    </div>
+
+    <!-- Modal per la creazione di una nuova spesa -->
+    <div class="modal fade" id="createExpenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuova Spesa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ transaction_form.as_p }}
+                        <button type="submit" class="btn bg-dark text-white" name="create_transaction">Crea Spesa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per la creazione di una nuova spesa ricorrente -->
+    <div class="modal fade" id="createRecurrentExpenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuova Spesa Ricorrente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ recurring_transaction_form.as_p }}
+                        <button type="submit" class="btn bg-dark text-white" name="create_recurring_transaction">Crea Spese</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabella delle spese -->
+    <table class="table table-bordered mt-4">
+        <thead class="table-dark">
+            <tr>
+                <th>Data</th>
+                <th>Descrizione</th>
+                <th>Account</th>
+                <th>Categoria</th>
+                <th>Importo</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.date }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>{{ transaction.account.name }}</td>
+                    <td>{{ transaction.category.name }}</td>
+                    <td>{{ transaction.amount }} €</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-dark" href="{% url 'transactions:transaction_detail_view' transaction.id %}">Modifica</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2 class="h4 mb-4">Dettaglio Categoria</h2>
+
+            <!-- Card Dettaglio Categoria con Gerarchia -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-tag"></i> Informazioni della Categoria
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        
+                        <!-- Breadcrumb per Gerarchia -->
+                        <p><strong>Gerarchia:</strong></p>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                {% for parent in category.get_hierarchy %}
+                                    <li class="breadcrumb-item">
+                                        <a href="{% url 'transactions:category_detail_view' parent.id %}">{{ parent.name }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        </nav>
+
+                        <!-- Tipo di Transazione con Icona -->
+                        <p><strong>Tipo di Transazione:</strong>
+                            {% if category.transaction_type == 'income' %}
+                                <i class="fas fa-arrow-circle-up text-success"></i> Entrata
+                            {% else %}
+                                <i class="fas fa-arrow-circle-down text-danger"></i> Uscita
+                            {% endif %}
+                        </p>
+                        
+                        <!-- Pulsanti Azioni -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn bg-dark text-white" name="update_category">Aggiorna Categoria</button>
+                            <button type="submit" class="btn btn-danger" name="delete_category" 
+                                    onclick="return confirm('Sei sicuro di voler eliminare questa categoria?')">Elimina Categoria</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

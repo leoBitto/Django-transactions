@@ -1,0 +1,52 @@
+{% extends "backoffice/backoffice_base.html" %}
+{% load static %}
+
+{% block dashboard_app %}
+<div class="container mt-4">
+    <h2 class="h4 mb-4">Dettagli Conto {{account.name}}</h2>
+    <h3 class="h5 mb-3">Presso {{account.institution}}</h3>
+
+    <!-- Card per Modifica del Conto -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="modal-title">Modifica Conto</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn bg-dark text-white" name="update_account">Aggiorna Conto</button>
+                    <button type="submit" class="btn btn-danger" name="delete_account">Elimina Conto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bottoni Azioni -->
+    <div class="d-flex gap-2">
+        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#transferFundsModal">
+            <i class="fas fa-exchange-alt me-2"></i> Trasferisci Fondi
+        </button>
+    </div>
+
+    <!-- Modale per Trasferire Fondi -->
+    <div class="modal fade" id="transferFundsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Trasferisci Fondi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ transfer_form.as_p }}
+                        <button type="submit" class="btn bg-dark text-white" name="transfer_funds">Trasferisci</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
