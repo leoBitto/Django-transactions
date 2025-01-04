@@ -1,12 +1,21 @@
-{% extends "backoffice/backoffice_base.html" %}
+{% extends "backoffice/backoffice.html" %}
 {% load static %}
 
-{% block dashboard_app %}
+{% block main %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h4">Entrate</h2>
-        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createIncomeModal">Aggiungi Entrata</button>
-        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createRecurrentIncomeModal">Aggiungi Entrata Ricorrente</button>
+        <div class="d-flex flex-row justify-content-between align-items-center mb-4">
+            <button class="btn bg-dark text-white mx-1" data-bs-toggle="modal" data-bs-target="#createIncomeModal">
+                <i class="fas fa-plus me-2"></i>  Entrata
+            </button>
+            <button class="btn bg-dark text-white mx-1" data-bs-toggle="modal" data-bs-target="#createRecurrentIncomeModal">
+                <i class="fas fa-sync-alt me-2"></i> Entrata Ricorrente
+            </button>
+            <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-reply me-2"></i>indietro
+            </a>
+        </div>
     </div>
 
     <!-- Modal per la creazione di una nuova entrata -->
@@ -52,9 +61,9 @@
         <thead class="table-dark">
             <tr>
                 <th>Data</th>
-                <th>Descrizione</th>
+                <th class="d-none d-md-table-cell">Descrizione</th>
                 <th>Account</th>
-                <th>Categoria</th>
+                <th class="d-none d-md-table-cell">Categoria</th>
                 <th>Importo</th>
                 <th>Azioni</th>
             </tr>
@@ -63,9 +72,9 @@
             {% for transaction in transactions %}
                 <tr>
                     <td>{{ transaction.date }}</td>
-                    <td>{{ transaction.description }}</td>
+                    <td class="d-none d-md-table-cell">{{ transaction.description }}</td>
                     <td>{{ transaction.account.name }}</td>
-                    <td>{{ transaction.category.name }}</td>
+                    <td class="d-none d-md-table-cell">{{ transaction.category.name }}</td>
                     <td>{{ transaction.amount }} €</td>
                     <td>
                         <a class="btn btn-sm btn-outline-dark" href="{% url 'transactions:transaction_detail_view' transaction.id %}">Modifica</a>

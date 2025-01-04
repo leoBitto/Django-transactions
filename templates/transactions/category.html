@@ -1,13 +1,18 @@
-{% extends "backoffice/backoffice_base.html" %}
+{% extends "backoffice/backoffice.html" %}
 {% load static %}
 
-{% block dashboard_app %}
+{% block main %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h4">Categorie di Transazioni</h2>
-        <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
-            Aggiungi Categoria
-        </button>
+        <div class="d-flex flex-row justify-content-between align-items-center mb-4">
+            <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                <i class="fas fa-plus-circle me-2"></i>Aggiungi Categoria
+            </button>
+            <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-reply me-2"></i>indietro
+            </a>
+        </div>
     </div>
 
     <!-- Modal per creare una nuova categoria -->
@@ -15,14 +20,16 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title">Nuova Categoria</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nuova Categoria</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form method="post">
                         {% csrf_token %}
                         {{ category_form.as_p }}
-                        <button type="submit" class="btn bg-dark text-white" name="create_category">Crea Categoria</button>
+                        <button type="submit" class="btn bg-dark text-white" name="create_category">
+                            <i class="fas fa-check me-2"></i> Crea Categoria
+                        </button>
                     </form>
                 </div>
             </div>
@@ -33,7 +40,7 @@
     <div class="row">
         <!-- Categorie di Spesa -->
         <div class="col-lg-6 col-md-12 mb-4">
-            <h3 class="h5"><i class="fas fa-arrow-circle-down text-danger"></i> Categorie di Spesa</h3>
+            <h3 class="h5"><i class="fas fa-arrow-circle-down text-danger me-2"></i> Categorie di Spesa</h3>
             <table class="table table-bordered table-sm">
                 <thead class="table-dark">
                     <tr>
@@ -45,9 +52,7 @@
                 <tbody>
                     {% for category in expense_categories %}
                         <tr>
-                            <td>
-                                {{ category.name }}
-                            </td>
+                            <td>{{ category.name }}</td>
                             <td>
                                 {% for parent in category.get_hierarchy_limited %}
                                     <span class="me-2">{{ parent.name }}</span>
@@ -60,7 +65,7 @@
                                 <a href="{% url 'transactions:category_detail_view' category.id %}" 
                                    class="btn btn-sm btn-secondary" 
                                    title="Modifica Categoria">
-                                    <i class="fas fa-edit"></i> Modifica
+                                    <i class="fas fa-edit me-2"></i> Modifica
                                 </a>
                             </td>
                         </tr>
@@ -75,7 +80,7 @@
 
         <!-- Categorie di Reddito -->
         <div class="col-lg-6 col-md-12 mb-4">
-            <h3 class="h5"><i class="fas fa-arrow-circle-up text-success"></i> Categorie di Reddito</h3>
+            <h3 class="h5"><i class="fas fa-arrow-circle-up text-success me-2"></i> Categorie di Reddito</h3>
             <table class="table table-bordered table-sm">
                 <thead class="table-dark">
                     <tr>
@@ -87,9 +92,7 @@
                 <tbody>
                     {% for category in income_categories %}
                         <tr>
-                            <td>
-                                {{ category.name }}
-                            </td>
+                            <td>{{ category.name }}</td>
                             <td>
                                 {% for parent in category.get_hierarchy_limited %}
                                     <span class="me-2">{{ parent.name }}</span>
@@ -102,7 +105,7 @@
                                 <a href="{% url 'transactions:category_detail_view' category.id %}" 
                                    class="btn btn-sm btn-secondary" 
                                    title="Modifica Categoria">
-                                    <i class="fas fa-edit"></i> Modifica
+                                    <i class="fas fa-edit me-2"></i> Modifica
                                 </a>
                             </td>
                         </tr>

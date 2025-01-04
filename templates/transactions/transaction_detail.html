@@ -1,8 +1,11 @@
-{% extends "backoffice/backoffice_base.html" %}
+{% extends "backoffice/backoffice.html" %}
 {% load static %}
 
-{% block dashboard_app %}
+{% block main %}
 <div class="container mt-4">
+    <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark">
+        <i class="fa-solid fa-reply me-2"></i>indietro
+    </a>
     <h2 class="h4 mb-4">Dettaglio Transazione</h2>
 
     <!-- Card Dettaglio della Transazione -->
@@ -12,10 +15,10 @@
         </div>
         <div class="card-body">
             <p><strong>Data:</strong> {{ transaction.date }}</p>
-            <p><strong>Descrizione:</strong> {{ transaction.description|default:"Nessuna descrizione" }}</p>
+            <p class="d-none d-md-block"><strong>Descrizione:</strong> {{ transaction.description|default:"Nessuna descrizione" }}</p>
             <p><strong>Importo:</strong> {{ transaction.amount }} €</p>
             <p><strong>Tipo:</strong> {{ transaction.get_transaction_type_display }}</p>
-            <p><strong>Categoria:</strong> {{ transaction.category.name }}</p>
+            <p class="d-none d-md-block"><strong>Categoria:</strong> {{ transaction.category.name }}</p>
         </div>
     </div>
 

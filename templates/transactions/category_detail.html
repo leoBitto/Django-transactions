@@ -1,8 +1,11 @@
-{% extends "backoffice/backoffice_base.html" %}
+{% extends "backoffice/backoffice.html" %}
 {% load static %}
 
-{% block dashboard_app %}
+{% block main %}
 <div class="container mt-4">
+    <a href="{% url 'transactions:category_view' %}" class="btn btn-outline-dark">
+        <i class="fa-solid fa-reply me-2"></i>indietro
+    </a>
     <div class="row">
         <div class="col-md-8 offset-md-2">
             <h2 class="h4 mb-4">Dettaglio Categoria</h2>
@@ -10,13 +13,13 @@
             <!-- Card Dettaglio Categoria con Gerarchia -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-dark text-white">
-                    <i class="fas fa-tag"></i> Informazioni della Categoria
+                    <i class="fas fa-tag me-2"></i> Informazioni della Categoria
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
                         {{ form.as_p }}
-                        
+
                         <!-- Breadcrumb per Gerarchia -->
                         <p><strong>Gerarchia:</strong></p>
                         <nav aria-label="breadcrumb">
@@ -32,17 +35,21 @@
                         <!-- Tipo di Transazione con Icona -->
                         <p><strong>Tipo di Transazione:</strong>
                             {% if category.transaction_type == 'income' %}
-                                <i class="fas fa-arrow-circle-up text-success"></i> Entrata
+                                <i class="fas fa-arrow-circle-up text-success me-2"></i> Entrata
                             {% else %}
-                                <i class="fas fa-arrow-circle-down text-danger"></i> Uscita
+                                <i class="fas fa-arrow-circle-down text-danger me-2"></i> Uscita
                             {% endif %}
                         </p>
                         
                         <!-- Pulsanti Azioni -->
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn bg-dark text-white" name="update_category">Aggiorna Categoria</button>
+                            <button type="submit" class="btn bg-dark text-white" name="update_category">
+                                <i class="fas fa-sync-alt me-2"></i> Aggiorna Categoria
+                            </button>
                             <button type="submit" class="btn btn-danger" name="delete_category" 
-                                    onclick="return confirm('Sei sicuro di voler eliminare questa categoria?')">Elimina Categoria</button>
+                                    onclick="return confirm('Sei sicuro di voler eliminare questa categoria?')">
+                                <i class="fas fa-trash-alt me-2"></i> Elimina Categoria
+                            </button>
                         </div>
                     </form>
                 </div>

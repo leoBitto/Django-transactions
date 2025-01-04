@@ -1,23 +1,32 @@
-{% extends "backoffice/backoffice_base.html" %}
+{% extends "backoffice/backoffice.html" %}
 {% load static %}
 
-{% block dashboard_app %}
+{% block main %}
 <div class="container mt-4">
+    <a href="{% url 'transactions:account_view' %}" class="btn btn-outline-dark">
+        <i class="fa-solid fa-reply me-2"></i>indietro
+    </a>
     <h2 class="h4 mb-4">Dettagli Conto {{account.name}}</h2>
     <h3 class="h5 mb-3">Presso {{account.institution}}</h3>
 
     <!-- Card per Modifica del Conto -->
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-dark text-white">
-            <h5 class="modal-title">Modifica Conto</h5>
+            <h5 class="modal-title">
+                <i class="fas fa-edit me-2"></i>Modifica Conto
+            </h5>
         </div>
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
                 {{ form.as_p }}
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="submit" class="btn bg-dark text-white" name="update_account">Aggiorna Conto</button>
-                    <button type="submit" class="btn btn-danger" name="delete_account">Elimina Conto</button>
+                    <button type="submit" class="btn bg-dark text-white" name="update_account">
+                        <i class="fas fa-save me-2"></i> Aggiorna Conto
+                    </button>
+                    <button type="submit" class="btn btn-danger" name="delete_account">
+                        <i class="fas fa-trash-alt me-2"></i> Elimina Conto
+                    </button>
                 </div>
             </form>
         </div>
@@ -35,14 +44,18 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title">Trasferisci Fondi</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-arrow-alt-circle-right me-2"></i>Trasferisci Fondi
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form method="post">
                         {% csrf_token %}
                         {{ transfer_form.as_p }}
-                        <button type="submit" class="btn bg-dark text-white" name="transfer_funds">Trasferisci</button>
+                        <button type="submit" class="btn bg-dark text-white" name="transfer_funds">
+                            <i class="fas fa-paper-plane me-2"></i> Trasferisci
+                        </button>
                     </form>
                 </div>
             </div>
