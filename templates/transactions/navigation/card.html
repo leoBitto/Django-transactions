@@ -1,9 +1,12 @@
 <div class="col-12 col-md-4 mb-3">
     <div class="card p-3">
-        <div class="card-body text-center pt-3">
-            <i class="fas fa-exchange-alt fa-2x mb-3"></i> <!-- Icona principale per Transazioni -->
-            <h5 class="card-title">Transazioni</h5>
-            
+        <div class="card-body text-center pt-3 shadow-sm">
+            <!-- Icona e titolo affiancati -->
+            <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                <i class="fas fa-exchange-alt fa-2x"></i>
+                <h5 class="card-title mb-0">Transazioni</h5>
+            </div>
+
             <!-- Accordion -->
             <div class="accordion" id="transactionsAccordion">
                 <div class="accordion-item">
@@ -16,26 +19,25 @@
                         <div class="accordion-body">
                             <ul class="list-unstyled">
                                 <li>
-                                    <a href="{% url 'transactions:account_view' %}" class="btn btn-outline-dark my-1">
+                                    <a href="{% url 'transactions:account_view' %}" class="btn btn-outline-dark my-1 w-100 text-start">
                                         <i class="fas fa-piggy-bank me-2"></i> Gestione Account
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'transactions:income_view' %}" class="btn btn-outline-dark my-1">
+                                    <a href="{% url 'transactions:income_view' %}" class="btn btn-outline-dark my-1 w-100 text-start">
                                         <i class="fas fa-coins me-2"></i> Entrate
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'transactions:expense_view' %}" class="btn btn-outline-dark my-1">
+                                    <a href="{% url 'transactions:expense_view' %}" class="btn btn-outline-dark my-1 w-100 text-start">
                                         <i class="fas fa-wallet me-2"></i> Spese
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'transactions:category_view' %}" class="btn btn-outline-dark my-1">
+                                    <a href="{% url 'transactions:category_view' %}" class="btn btn-outline-dark my-1 w-100 text-start">
                                         <i class="fas fa-tags me-2"></i> Categorie
                                     </a>
                                 </li>
-                                <!-- Aggiungi altri link se necessario -->
                             </ul>
                         </div>
                     </div>

@@ -70,7 +70,7 @@
                 <th>Data</th>
                 <th class="d-none d-md-table-cell">Descrizione</th>
                 <th class="d-none d-md-table-cell">Account</th>
-                <th>Categoria</th>
+                <th class="d-none d-md-table-cell">Categoria</th>
                 <th>Importo</th>
                 <th>Azioni</th>
             </tr>
@@ -81,7 +81,7 @@
                     <td>{{ transaction.date }}</td>
                     <td class="d-none d-md-table-cell">{{ transaction.description }}</td>
                     <td class="d-none d-md-table-cell">{{ transaction.account.name }}</td>
-                    <td>{{ transaction.category.name }}</td>
+                    <td class="d-none d-md-table-cell">{{ transaction.category.name }}</td>
                     <td>{{ transaction.amount }} €</td>
                     <td>
                         <a class="btn btn-sm btn-outline-dark" href="{% url 'transactions:transaction_detail_view' transaction.id %}">
