@@ -7,10 +7,12 @@
         <h2 class="h4">Categorie di Transazioni</h2>
         <div class="d-flex flex-row justify-content-between align-items-center mb-4">
             <button class="btn bg-dark text-white" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
-                <i class="fas fa-plus-circle me-2"></i>Aggiungi Categoria
+                <i class="fas fa-plus-circle me-2"></i>
+                <span class="d-none d-md-inline">Aggiungi Categoria</span>
             </button>
             <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark">
                 <i class="fa-solid fa-reply me-2"></i>indietro
+                <span class="d-none d-md-inline">Indietro</span>
             </a>
         </div>
     </div>

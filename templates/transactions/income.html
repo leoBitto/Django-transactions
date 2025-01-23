@@ -7,13 +7,16 @@
         <h2 class="h4">Entrate</h2>
         <div class="d-flex flex-row justify-content-between align-items-center mb-4">
             <button class="btn bg-dark text-white mx-1" data-bs-toggle="modal" data-bs-target="#createIncomeModal">
-                <i class="fas fa-plus me-2"></i>  Entrata
+                <i class="fas fa-plus me-2"></i>  
+                <span class="d-none d-md-inline">Entrata</span>
             </button>
             <button class="btn bg-dark text-white mx-1" data-bs-toggle="modal" data-bs-target="#createRecurrentIncomeModal">
-                <i class="fas fa-sync-alt me-2"></i> Entrata Ricorrente
+                <i class="fas fa-sync-alt me-2"></i> 
+                <span class="d-none d-md-inline">Entrata Ricorrente</span>
             </button>
             <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark">
-                <i class="fa-solid fa-reply me-2"></i>indietro
+                <i class="fa-solid fa-reply me-2"></i>
+                <span class="d-none d-md-inline">Indietro</span>
             </a>
         </div>
     </div>

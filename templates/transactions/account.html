@@ -10,10 +10,12 @@
         </h2>
         <div class="d-flex flex-row justify-content-between align-items-center mb-4">
             <button class="btn bg-dark text-white mt-2 mt-md-0" data-bs-toggle="modal" data-bs-target="#createBankAccountModal">
-                <i class="fas fa-plus-circle me-2"></i>Aggiungi Conto Bancario
+                <i class="fas fa-plus-circle me-2"></i>
+                <span class="d-none d-md-inline">Aggiungi Conto Bancario</span>
             </button>
             <a href="{% url 'backoffice:backoffice' %}" class="btn btn-outline-dark mt-2 mt-md-0">
-                <i class="fa-solid fa-reply me-2"></i>indietro
+                <i class="fa-solid fa-reply me-2"></i>
+                <span class="d-none d-md-inline">Indietro</span>
             </a>
         </div>
     </div>
